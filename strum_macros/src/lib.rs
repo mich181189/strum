@@ -47,6 +47,9 @@ fn debug_print_generated(ast: &DeriveInput, toks: &TokenStream) {
 /// See the [Additional Attributes](https://docs.rs/strum/0.22/strum/additional_attributes/index.html)
 /// Section for more information on using this feature.
 ///
+/// If you have a large enum, you may want to consider using the `use_phf` attribute here. It leverages
+/// perfect hash functions to parse much quicker than a standard `match`. (MSRV 1.46)
+///
 /// # Example howto use `EnumString`
 /// ```
 /// use std::str::FromStr;
@@ -172,7 +175,7 @@ pub fn as_ref_str(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 /// use strum::VariantNames;
 ///
 /// #[derive(Debug, EnumString, EnumVariantNames)]
-/// #[strum(serialize_all = "kebab_case")]
+/// #[strum(serialize_all = "kebab-case")]
 /// enum Color {
 ///     Red,
 ///     Blue,
@@ -250,7 +253,7 @@ pub fn into_static_str(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
     toks.into()
 }
 
-/// implements `std::string::ToString` on en enum
+/// implements `std::string::ToString` on an enum
 ///
 /// ```
 /// // You need to bring the ToString trait into scope to use it
@@ -341,7 +344,7 @@ pub fn display(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 /// Creates a new type that iterates of the variants of an enum.
 ///
 /// Iterate over the variants of an Enum. Any additional data on your variants will be set to `Default::default()`.
-/// The macro implements `strum::IntoEnumIter` on your enum and creates a new type called `YourEnumIter` that is the iterator object.
+/// The macro implements `strum::IntoEnumIterator` on your enum and creates a new type called `YourEnumIter` that is the iterator object.
 /// You cannot derive `EnumIter` on any type with a lifetime bound (`<'a>`) because the iterator would surely
 /// create [unbounded lifetimes](https://doc.rust-lang.org/nightly/nomicon/unbounded-lifetimes.html).
 ///
@@ -381,14 +384,73 @@ pub fn enum_iter(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     toks.into()
 }
 
-/// Add a function to enum that allows accessing variants by its discriminant.
-/// On Rust 1.34 and above, std::convert::TryFrom<TDiscriminant> will be derived as well.
+/// Generated `is_*()` methods for each variant.
+/// E.g. `Color.is_red()`.
+///
+/// ```
+///
+/// use strum_macros::EnumIs;
+///
+/// #[derive(EnumIs, Debug)]
+/// enum Color {
+///     Red,
+///     Green { range: usize },
+/// }
+///
+/// assert!(Color::Red.is_red());
+/// assert!(Color::Green{range: 0}.is_green());
+/// ```
+#[proc_macro_derive(EnumIs, attributes(strum))]
+pub fn enum_is(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let ast = syn::parse_macro_input!(input as DeriveInput);
+
+    let toks = macros::enum_is::enum_is_inner(&ast).unwrap_or_else(|err| err.to_compile_error());
+    debug_print_generated(&ast, &toks);
+    toks.into()
+}
+
+/// Generated `try_as_*()` methods for all tuple-style variants.
+/// E.g. `Message.try_as_write()`.
+///
+/// These methods will only be generated for tuple-style variants, not for named or unit variants.
+///
+/// ```
+/// use strum_macros::EnumTryAs;
+///
+/// #[derive(EnumTryAs, Debug)]
+/// enum Message {
+///     Quit,
+///     Move { x: i32, y: i32 },
+///     Write(String),
+///     ChangeColor(i32, i32, i32),
+/// }
+///
+/// assert_eq!(
+///     Message::Write(String::from("Hello")).try_as_write(),
+///     Some(String::from("Hello"))
+/// );
+/// assert_eq!(
+///     Message::ChangeColor(1, 2, 3).try_as_change_color(),
+///     Some((1, 2, 3))
+/// );
+/// ```
+#[proc_macro_derive(EnumTryAs, attributes(strum))]
+pub fn enum_try_as(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let ast = syn::parse_macro_input!(input as DeriveInput);
+
+    let toks =
+        macros::enum_try_as::enum_try_as_inner(&ast).unwrap_or_else(|err| err.to_compile_error());
+    debug_print_generated(&ast, &toks);
+    toks.into()
+}
+
+/// Add a function to enum that allows accessing variants by its discriminant
 ///
 /// This macro adds a standalone function to obtain an enum variant by its discriminant. The macro adds
 /// `from_repr(discriminant: usize) -> Option<YourEnum>` as a standalone function on the enum. For
 /// variants with additional data, the returned variant will use the `Default` trait to fill the
 /// data. The discriminant follows the same rules as `rustc`. The first discriminant is zero and each
-/// successive variant has a discriminant of one greater than the previous variant, expect where an
+/// successive variant has a discriminant of one greater than the previous variant, except where an
 /// explicit discriminant is specified. The type of the discriminant will match the `repr` type if
 /// it is specifed.
 ///
@@ -472,11 +534,11 @@ pub fn from_repr(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 /// Encode strings into the enum itself. The `strum_macros::EmumMessage` macro implements the `strum::EnumMessage` trait.
 /// `EnumMessage` looks for `#[strum(message="...")]` attributes on your variants.
 /// You can also provided a `detailed_message="..."` attribute to create a seperate more detailed message than the first.
-/// 
+///
 /// `EnumMessage` also exposes the variants doc comments through `get_documentation()`. This is useful in some scenarios,
 /// but `get_message` should generally be preferred. Rust doc comments are intended for developer facing documentation,
 /// not end user messaging.
-/// 
+///
 /// ```
 /// // You need to bring the trait into scope to use it
 /// use strum::EnumMessage;
@@ -686,7 +748,7 @@ pub fn enum_properties(input: proc_macro::TokenStream) -> proc_macro::TokenStrea
 /// of the generated enum. By default, the generated enum inherits the
 /// visibility of the parent enum it was generated from.
 ///
-/// ```nocompile
+/// ```
 /// use strum_macros::EnumDiscriminants;
 ///
 /// // You can set the visibility of the generated enum using the `#[strum_discriminants(vis(..))]` attribute:

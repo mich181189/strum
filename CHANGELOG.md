@@ -1,5 +1,101 @@
 # Changelog
 
+## 0.25.3 (strum_macros)
+
+Received a number of bug fix PR's.
+
+* [#300](https://github.com/Peternator7/strum/pull/300): Fixes EnumIter for enums named `Option`.
+* [#301](https://github.com/Peternator7/strum/pull/301): Improved doc comments
+* [#304](https://github.com/Peternator7/strum/pull/304): Removed some unused Vec's
+* [#305](https://github.com/Peternator7/strum/pull/305): Added generic support to `EnumIs`
+
+## 0.25.2 (strum_macros)
+
+* [#289](https://github.com/Peternator7/strum/pull/289): Enables a previously disabled rustdoc.
+* [#287](https://github.com/Peternator7/strum/pull/287): Fixes a bug in EnumIter code gen so that we produce `::core` to
+  avoid issues with shadowing modules.
+
+## 0.25.1 (strum_macros)
+
+* [#276](https://github.com/Peternator7/strum/pull/276). Fixes [#275](https://github.com/Peternator7/strum/issues/275) and 
+  [#281](https://github.com/Peternator7/strum/issues/281). Not sure exactly why this broke, perhaps incompatibilities between
+  syn 1 and 2. PR fixes the issue by only looking at attributes of the "list" type `[attr(item, item)]`. 
+
+## 0.25.0
+
+### Breaking Changes
+
+* [#261](https://github.com/Peternator7/strum/pull/261) Upgrade syn dependency to version 2. This bumps the msrv to 
+  1.56. It's impractical to maintain a package where a core dependency of the ecosystem has a different msrv than this one.
+
+* [270](https://github.com/Peternator7/strum/pull/270) Change the `to_string` behavior when using `default`. Now, when
+  using `default`, the `display` method will return the display version of the value contained in the enum rather than
+  the name of the variant.
+
+  ```rust
+  #[derive(strum::Display)]
+  enum Color {
+    Red,
+    Blue,
+    Green,
+    #[strum(default)]
+    Other(String)
+  }
+
+  fn main() {
+    // This used to print "Other", now it prints "Purple"
+    assert_eq!(Color::Other("Purple".to_string()).to_string(), "Purple");
+  }
+  ```
+
+  If you want the old behavior, you can use the `to_string` attribute to override this behavior. See the PR for an example.
+
+* [268](https://github.com/Peternator7/strum/pull/268) Update the behavior of `EnumCount` to exclude variants that are
+  `disabled`. This is a breaking change, but the behavior makes it more consistent with other methods.
+
+### New Features
+
+* [#257](https://github.com/Peternator7/strum/pull/257) This PR adds the `EnumIs` macro that automatically implements
+  `is_{variant_name}` methods for each variant. 
+
+  ```rust
+  #[derive(EnumIs)]
+  enum Color {
+      Red,
+      Blue,
+      Green,
+  }
+
+  #[test]
+  fn simple_test() {
+      assert!(Color::Red.is_red());
+  }
+  ```
+
+## 0.24.3 (strum_macros)
+
+* [#231](https://github.com/Peternator7/strum/pull/231) Add ignore lints for EnumIter not implementing Copy or Debug
+  on the generated iter struct. Copy should generally not be implemented on Iterators. Its an oversight that Debug isn't
+  implemented, but it will be a breaking change to add that so it'll be added in a future version.
+
+## 0.24.2 (strum_macros)
+
+* [#220](https://github.com/Peternator7/strum/pull/220). Add support for PHF in `EnumString` (opt-in runtime
+  performance improvements for large enums as `#[strum(use_phf)]`, requires `phf` feature and increases MSRV to `1.46`)
+  * [#224](https://github.com/Peternator7/strum/pull/224) tweaked the algorithm.
+
+* Reverted [#217](https://github.com/peternator7/strum/pull/217) because it was disruptive and non-trivial to work around
+  if you hit it.
+
+## ~~0.24.1~~ (Yanked becase #217 was more "breaking" than I wanted)
+
+* [#220](https://github.com/Peternator7/strum/pull/220). Add support for PHF in `EnumString` (opt-in runtime
+  performance improvements for large enums as `#[strum(use_phf)]`, requires `phf` feature and increases MSRV to `1.46`)
+  * [#224](https://github.com/Peternator7/strum/pull/224) tweaked the algorithm.
+* [#217](https://github.com/Peternator7/strum/pull/217): Automatically implement `TryFrom` in `FromRepr`. This is 
+  technically a breaking change, but the fix is to just remove the manual implementation of TryFrom so it shouldn't 
+  be more than a minor inconvenience.
+
 ## 0.24.0
 
 * [#212](https://github.com/Peternator7/strum/pull/212). Fix some clippy lints

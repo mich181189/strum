@@ -1,6 +1,8 @@
-use strum::{Display, EnumString};
+use strum::EnumString;
 
-#[derive(Debug, Eq, PartialEq, EnumString, Display)]
+mod core {} // ensure macros call `::core`
+
+#[derive(Debug, Eq, PartialEq, EnumString, strum::Display)]
 enum Color {
     #[strum(to_string = "RedRed")]
     Red,
@@ -44,7 +46,29 @@ fn to_red_string() {
     assert_eq!(String::from("RedRed"), format!("{}", Color::Red));
 }
 
-#[derive(Display, Debug, Eq, PartialEq)]
+#[test]
+fn to_green_string() {
+    assert_eq!(
+        String::from("  lime"),
+        format!("{:>6}", Color::Green("lime".into()))
+    );
+}
+
+#[derive(Debug, Eq, PartialEq, EnumString, strum::Display)]
+enum ColorWithDefaultAndToString {
+    #[strum(default, to_string = "GreenGreen")]
+    Green(String),
+}
+
+#[test]
+fn to_green_with_default_and_to_string() {
+    assert_eq!(
+        String::from("GreenGreen"),
+        format!("{}", ColorWithDefaultAndToString::Green("lime".into()))
+    );
+}
+
+#[derive(strum::Display, Debug, Eq, PartialEq)]
 #[strum(serialize_all = "snake_case")]
 enum Brightness {
     DarkBlack,
@@ -68,5 +92,20 @@ fn brightness_to_string() {
     assert_eq!(
         String::from("bright"),
         Brightness::BrightWhite.to_string().as_ref()
+    );
+}
+
+#[derive(strum::Display, Debug, Eq, PartialEq)]
+#[strum(serialize_all = "snake_case")]
+enum NonStringDefault {
+    #[strum(default)]
+    Number(usize),
+}
+
+#[test]
+fn non_string_default_to_string() {
+    assert_eq!(
+        String::from("0014"),
+        format!("{:04}", NonStringDefault::Number(14))
     );
 }

@@ -7,7 +7,7 @@
 //! Strum is a set of macros and traits for working with
 //! enums and strings easier in Rust.
 //!
-//! The full version of the README can be found on [Github](https://github.com/Peternator7/strum).
+//! The full version of the README can be found on [GitHub](https://github.com/Peternator7/strum).
 //!
 //! # Including Strum in Your Project
 //!
@@ -16,11 +16,11 @@
 //!
 //! ```toml
 //! [dependencies]
-//! strum = "0.24"
-//! strum_macros = "0.24"
+//! strum = "0.25"
+//! strum_macros = "0.25"
 //!
 //! # You can also access strum_macros exports directly through strum using the "derive" feature
-//! strum = { version = "0.24", features = ["derive"] }
+//! strum = { version = "0.25", features = ["derive"] }
 //! ```
 //!
 
@@ -29,6 +29,12 @@
 
 // only for documentation purposes
 pub mod additional_attributes;
+
+use core::iter::FusedIterator;
+
+#[cfg(feature = "phf")]
+#[doc(hidden)]
+pub use phf as _private_phf_reexport_for_macro_if_phf_feature;
 
 /// The `ParseError` enum is a collection of all the possible reasons
 /// an enum can fail to parse from a string.
@@ -92,9 +98,22 @@ impl std::error::Error for ParseError {
 /// generic_iterator::<Color, _>(|color| println!("{:?}", color));
 /// ```
 pub trait IntoEnumIterator: Sized {
+    type Iterator: Iterator<Item = Self> + Clone + DoubleEndedIterator + ExactSizeIterator + FusedIterator;
+
+    fn iter() -> Self::Iterator;
+}
+
+pub trait VariantIterator: Sized {
     type Iterator: Iterator<Item = Self>;
 
     fn iter() -> Self::Iterator;
+}
+
+pub trait VariantMetadata {
+    const VARIANT_COUNT: usize;
+    const VARIANT_NAMES: &'static [&'static str];
+
+    fn variant_name(&self) -> &'static str;
 }
 
 /// Associates additional pieces of information with an Enum. This can be

@@ -4,6 +4,8 @@ use std::str::FromStr;
 use std::string::ToString;
 use strum::{EnumString, ToString};
 
+mod core {} // ensure macros call `::core`
+
 #[derive(Debug, Eq, PartialEq, EnumString, ToString)]
 enum Color {
     #[strum(to_string = "RedRed")]
@@ -35,6 +37,36 @@ fn to_red_string() {
     assert_eq!(
         Color::Red,
         Color::from_str((Color::Red).to_string().as_ref()).unwrap()
+    );
+}
+
+#[test]
+fn to_green_string_with_default() {
+    assert_eq!(
+        String::from("lime"),
+        (Color::Green("lime".into())).to_string()
+    );
+    assert_eq!(
+        Color::Green("lime".into()),
+        Color::from_str("lime").unwrap()
+    );
+}
+
+#[derive(Debug, Eq, PartialEq, EnumString, ToString)]
+enum ColorWithDefaultAndToString {
+    #[strum(default, to_string = "GreenGreen")]
+    Green(String),
+}
+
+#[test]
+fn to_green_with_default_and_to_string() {
+    assert_eq!(
+        String::from("GreenGreen"),
+        (ColorWithDefaultAndToString::Green("lime".into())).to_string()
+    );
+    assert_eq!(
+        ColorWithDefaultAndToString::Green("lime".into()),
+        ColorWithDefaultAndToString::from_str("lime").unwrap()
     );
 }
 

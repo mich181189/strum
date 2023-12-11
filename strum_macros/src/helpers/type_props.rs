@@ -20,6 +20,8 @@ pub struct StrumTypeProperties {
     pub discriminant_name: Option<Ident>,
     pub discriminant_others: Vec<TokenStream>,
     pub discriminant_vis: Option<Visibility>,
+    pub use_phf: bool,
+    pub enum_repr: Option<TokenStream>,
 }
 
 impl HasTypeProperties for DeriveInput {
@@ -31,6 +33,7 @@ impl HasTypeProperties for DeriveInput {
 
         let mut serialize_all_kw = None;
         let mut ascii_case_insensitive_kw = None;
+        let mut use_phf_kw = None;
         let mut crate_module_path_kw = None;
         for meta in strum_meta {
             match meta {
@@ -49,6 +52,14 @@ impl HasTypeProperties for DeriveInput {
 
                     ascii_case_insensitive_kw = Some(kw);
                     output.ascii_case_insensitive = true;
+                }
+                EnumMeta::UsePhf(kw) => {
+                    if let Some(fst_kw) = use_phf_kw {
+                        return Err(occurrence_error(fst_kw, kw, "use_phf"));
+                    }
+
+                    use_phf_kw = Some(kw);
+                    output.use_phf = true;
                 }
                 EnumMeta::Crate {
                     crate_module_path,
@@ -89,6 +100,17 @@ impl HasTypeProperties for DeriveInput {
                 }
                 EnumDiscriminantsMeta::Other { path, nested } => {
                     output.discriminant_others.push(quote! { #path(#nested) });
+                }
+            }
+        }
+
+        let attrs = &self.attrs;
+        for attr in attrs {
+            if let Ok(list) = attr.meta.require_list() {
+                if let Some(ident) = list.path.get_ident() {
+                    if ident == "repr" {
+                        output.enum_repr = Some(list.tokens.clone())
+                    }
                 }
             }
         }

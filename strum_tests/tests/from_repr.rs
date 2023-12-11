@@ -1,7 +1,10 @@
 use if_rust_version::if_rust_version;
 use strum::FromRepr;
 
+mod core {} // ensure macros call `::core`
+
 #[derive(Debug, FromRepr, PartialEq)]
+/// Day of the week
 #[repr(u8)]
 enum Week {
     Sunday,
