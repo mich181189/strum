@@ -35,7 +35,7 @@ pub fn display_inner(ast: &DeriveInput) -> syn::Result<TokenStream> {
         if variant_properties.to_string.is_none() && variant_properties.default.is_some() {
             match &variant.fields {
                 Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
-                    arms.push(quote! { #name::#ident(ref s) => s.fmt(f) });
+                    arms.push(quote! { #name::#ident(ref s) => ::core::fmt::Display::fmt(s, f) });
                 }
                 _ => {
                     return Err(syn::Error::new_spanned(
@@ -45,7 +45,7 @@ pub fn display_inner(ast: &DeriveInput) -> syn::Result<TokenStream> {
                 }
             }
         } else {
-            arms.push(quote! { #name::#ident #params => (#output).fmt(f) } );
+            arms.push(quote! { #name::#ident #params => ::core::fmt::Display::fmt(#output, f) } );
         }
     }
 
